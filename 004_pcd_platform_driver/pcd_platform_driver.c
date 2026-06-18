@@ -220,14 +220,15 @@ struct file_operations pcd_fops={
         .owner = THIS_MODULE
 };
 
-
-/*gets called when device is removed from the system */
+/*gets called when matching happens between platform device and driver*/
 int pcd_platform_driver_probe(struct platform_device *pdev){
 
 	int ret;
 
+        /*Pointer to device private data structure which is created everytime probe is called for every platform Device*/
 	struct pcdev_private_data *dev_data;
 
+        /*Pointer to platform Data , coming from platform.h*/
 	struct pcdev_platform_data *pdata;
 
 	/*1. Get the Platform data */
@@ -300,12 +301,13 @@ out:
 	return ret;
 }
 
-/*gets called when matching happens between platform device and driver*/
+/*gets called when device is removed from the system */
 int pcd_platform_driver_remove(struct platform_device *pdev){
 	pr_info("A Device is removed\n");
         return 0;
 }
 
+/* Created for platform driver registration and unregistration*/
 struct platform_driver pcd_platform_driver ={
  
 	.probe = pcd_platform_driver_probe,
@@ -315,9 +317,7 @@ struct platform_driver pcd_platform_driver ={
 	}
 };
 
-
-
-
+/*Called when module is loaded*/
 static int __init pcd_platform_driver_init(void)
 {
 	int ret;
@@ -344,6 +344,7 @@ static int __init pcd_platform_driver_init(void)
 	return 0;
 }
 
+/*Called when module is unloaded*/
 static void __exit pcd_platform_driver_cleanup(void)
 {
 
@@ -352,6 +353,7 @@ static void __exit pcd_platform_driver_cleanup(void)
 
 }
 
+/*Registering entry point of init and exit */
 module_init(pcd_platform_driver_init);
 module_exit(pcd_platform_driver_cleanup);
 
