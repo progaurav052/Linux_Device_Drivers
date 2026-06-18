@@ -1,0 +1,1 @@
+cmd_/home/ggpai/workspace/ldd/custom_drivers/002Psuedo_Driver/main.mod := { echo  /home/ggpai/workspace/ldd/custom_drivers/002Psuedo_Driver/main.o;  echo; } > /home/ggpai/workspace/ldd/custom_drivers/002Psuedo_Driver/main.mod

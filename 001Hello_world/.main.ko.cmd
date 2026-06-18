@@ -1,0 +1,1 @@
+cmd_/home/ggpai/workspace/ldd/custom_drivers/001Hello_world/main.ko := arm-linux-gnueabihf-ld -r  -EL -z noexecstack   --build-id=sha1  -T scripts/module.lds -o /home/ggpai/workspace/ldd/custom_drivers/001Hello_world/main.ko /home/ggpai/workspace/ldd/custom_drivers/001Hello_world/main.o /home/ggpai/workspace/ldd/custom_drivers/001Hello_world/main.mod.o;  true

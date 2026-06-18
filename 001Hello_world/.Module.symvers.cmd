@@ -1,0 +1,1 @@
+cmd_/home/ggpai/workspace/ldd/custom_drivers/001Hello_world/Module.symvers := sed 's/ko$$/o/' /home/ggpai/workspace/ldd/custom_drivers/001Hello_world/modules.order | scripts/mod/modpost -m    -o /home/ggpai/workspace/ldd/custom_drivers/001Hello_world/Module.symvers -e -i Module.symvers   -T -
