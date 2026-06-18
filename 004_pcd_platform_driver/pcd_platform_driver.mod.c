@@ -34,6 +34,7 @@ __used __section(__versions) = {
 	{ 0xaf507de1, "__arch_copy_from_user" },
 	{ 0x6b2941b2, "__arch_copy_to_user" },
 	{ 0x88db9f48, "__check_object_size" },
+	{ 0xe81e9ceb, "device_destroy" },
 	{ 0x37a0cba, "kfree" },
 	{ 0xd7c07fe9, "cdev_del" },
 	{ 0xa38bddb0, "device_create" },
@@ -52,4 +53,4 @@ __used __section(__versions) = {
 MODULE_INFO(depends, "");
 
 
-MODULE_INFO(srcversion, "01D1600F16759369C17C683");
+MODULE_INFO(srcversion, "A9492715ED99B1ECE062A4E");

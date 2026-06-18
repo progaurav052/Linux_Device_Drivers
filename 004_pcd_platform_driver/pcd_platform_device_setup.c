@@ -30,9 +30,9 @@ struct platform_device platform_pcdev_1 ={
 struct platform_device platform_pcdev_2 = {
 .name = "pseudo-char-device",
 .id = 1,
-.dev = {
-        .platform_data = &pcdev_pdata[1],
-        .release = pcdev_release
+.dev = { /*this is struct device dev */
+        .platform_data = &pcdev_pdata[1], // this is an pointer to void actually
+        .release = pcdev_release 
  }
 
 };

@@ -231,6 +231,7 @@ int pcd_platform_driver_probe(struct platform_device *pdev){
         /*Pointer to platform Data , coming from platform.h*/
 	struct pcdev_platform_data *pdata;
 
+        pr_info("A Device is detected\n");
 	/*1. Get the Platform data */
 	pdata = pdev->dev.platform_data;
 	if(!pdata)
@@ -248,9 +249,14 @@ int pcd_platform_driver_probe(struct platform_device *pdev){
 	  goto out;
 	}
 
+        pdev->dev.driver_data = dev_data; /* for future use, we can set the device private data using pdev->dev.driver_data*/
 	dev_data->pdata.size = pdata->size;
 	dev_data->pdata.perm = pdata->perm;
 	dev_data->pdata.serial_number = pdata->serial_number;
+
+        pr_info("Device serial number = %s\n",dev_data->pdata.serial_number);
+	pr_info("Device size = %d\n", dev_data->pdata.size);
+	pr_info("Device permission = %d\n",dev_data->pdata.perm);
 
 	/*3. Dynamically allocate memory to device buffer using size info from platform data which is stored in dev_data in previous step*/
 	dev_data->buffer = kzalloc(sizeof(dev_data->pdata.size),GFP_KERNEL);
@@ -285,7 +291,8 @@ int pcd_platform_driver_probe(struct platform_device *pdev){
 	 
 	}
 
-	pr_info("A Device is detected\n");
+        pcdrv_data.total_devices++;
+	
 	return 0;
 
 cdev_del:
@@ -303,6 +310,18 @@ out:
 
 /*gets called when device is removed from the system */
 int pcd_platform_driver_remove(struct platform_device *pdev){
+        struct pcdev_private_data *dev_data = pdev->dev.driver_data;
+        /*Called when for matching paltform device and driver link is removed --> happens when device is removed or driver is removed*/
+        /*1. Remove the Device that was created with device create()*/
+        device_destroy(pcdrv_data.class_pcd,pcdrv_data.device_num_base + pdev->id);
+        /*2. Reomve the cdev entry from the kernel VFS*/
+        cdev_del(&dev_data->pcd_dev);
+        /*3. Free the memory held by the Device (like dev_data and dev_data->buffer that we created in probe) */
+        kfree(dev_data->buffer);
+        kfree(dev_data);
+
+        pcdrv_data.total_devices--;
+
 	pr_info("A Device is removed\n");
         return 0;
 }
