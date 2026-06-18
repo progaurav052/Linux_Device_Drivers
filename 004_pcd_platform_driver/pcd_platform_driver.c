@@ -242,7 +242,7 @@ int pcd_platform_driver_probe(struct platform_device *pdev){
 	}	
 
 	/*2. if we have the platform data , use that to allocate memory dynamically to device private data*/
-	dev_data=kzalloc(sizeof(*dev_data),GFP_KERNEL);
+	dev_data=devm_kmalloc(&pdev->dev,sizeof(*dev_data),GFP_KERNEL);
 	if(!dev_data){
 	  pr_info("Cannot allocate memory \n");
 	  ret = -ENOMEM;
@@ -259,11 +259,11 @@ int pcd_platform_driver_probe(struct platform_device *pdev){
 	pr_info("Device permission = %d\n",dev_data->pdata.perm);
 
 	/*3. Dynamically allocate memory to device buffer using size info from platform data which is stored in dev_data in previous step*/
-	dev_data->buffer = kzalloc(sizeof(dev_data->pdata.size),GFP_KERNEL);
+	dev_data->buffer = devm_kmalloc(&pdev->dev,sizeof(dev_data->pdata.size),GFP_KERNEL);
         if(!dev_data->buffer)
 	{
 	  pr_info("Cannot allocate memory to the Device buffer\n");
-	  return -ENOMEM;
+	  ret = -ENOMEM;
 	  goto dev_data_del;
 	}
 
@@ -299,14 +299,15 @@ cdev_del:
 	cdev_del(&dev_data->pcd_dev);
 
 buffer_free:
-	kfree(dev_data->buffer);
+	devm_kfree(&pdev->dev,dev_data->buffer);
 dev_data_del:
-	kfree(dev_data);
+	devm_kfree(&pdev->dev,dev_data);
 
-out:
+out: 
 	pr_info("Device probe failed\n");
 	return ret;
 }
+
 
 /*gets called when device is removed from the system */
 int pcd_platform_driver_remove(struct platform_device *pdev){
@@ -316,9 +317,10 @@ int pcd_platform_driver_remove(struct platform_device *pdev){
         device_destroy(pcdrv_data.class_pcd,pcdrv_data.device_num_base + pdev->id);
         /*2. Reomve the cdev entry from the kernel VFS*/
         cdev_del(&dev_data->pcd_dev);
-        /*3. Free the memory held by the Device (like dev_data and dev_data->buffer that we created in probe) */
+        //since i am allocating memory using devm version which is resource managed, i dont need to free the memory explicitly, it will be freed when device is removed
+        /*3. Free the memory held by the Device (like dev_data and dev_data->buffer that we created in probe) 
         kfree(dev_data->buffer);
-        kfree(dev_data);
+        kfree(dev_data);*/
 
         pcdrv_data.total_devices--;
 

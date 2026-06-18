@@ -18,31 +18,61 @@ struct pcdev_platform_data pcdev_pdata[]={
 
 
 
-struct platform_device platform_pcdev_1 ={
- .name = "pseudo-char-device",
- .id = 0,
- .dev = {
- 	.platform_data = &pcdev_pdata[0],
-	.release = pcdev_release
- }
+/*2. create n platform devices */ 
+
+struct platform_device platform_pcdev_1 = {
+	.name = "pcdev-A1x",
+	.id = 0,
+	.dev = {
+		.platform_data = &pcdev_pdata[0], /*this feild is actually an pointer to void*/
+		.release = pcdev_release
+	}
 };
 
-struct platform_device platform_pcdev_2 = {
-.name = "pseudo-char-device",
-.id = 1,
-.dev = { /*this is struct device dev */
-        .platform_data = &pcdev_pdata[1], // this is an pointer to void actually
-        .release = pcdev_release 
- }
 
+struct platform_device platform_pcdev_2 = {
+	.name = "pcdev-B1x",
+	.id = 1,
+	.dev = {
+		.platform_data = &pcdev_pdata[1],
+		.release = pcdev_release
+	}
+};
+
+
+struct platform_device platform_pcdev_3 = {
+	.name = "pcdev-C1x",
+	.id = 2,
+	.dev = {
+		.platform_data = &pcdev_pdata[2],
+		.release = pcdev_release
+	}
+};
+
+
+struct platform_device platform_pcdev_4 = {
+	.name = "pcdev-D1x",
+	.id = 3,
+	.dev = {
+		.platform_data = &pcdev_pdata[3], 
+		.release = pcdev_release
+	}
+};
+
+
+struct platform_device *platform_pcdevs[] = 
+{
+	&platform_pcdev_1,
+	&platform_pcdev_2,
+	&platform_pcdev_3,
+	&platform_pcdev_4
 };
 
 
 
 static int __init pcdev_platform_init(void)
 {
-	platform_device_register(&platform_pcdev_1);
-	platform_device_register(&platform_pcdev_2);
+	platform_add_devices(platform_pcdevs,ARRAY_SIZE(platform_pcdevs) );
     pr_info("Device setup module is loaded\n");
 	return 0;
 }
@@ -51,8 +81,10 @@ static void __exit pcdev_platform_exit(void)
 {
 
 	platform_device_unregister(&platform_pcdev_1);
-    platform_device_unregister(&platform_pcdev_2);
-	pr_info("Device setup module is unloaded\n");
+	platform_device_unregister(&platform_pcdev_2);
+	platform_device_unregister(&platform_pcdev_3);
+	platform_device_unregister(&platform_pcdev_4);
+	pr_info("Device setup module unloaded \n");
 
 }
 

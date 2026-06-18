@@ -35,13 +35,12 @@ __used __section(__versions) = {
 	{ 0x6b2941b2, "__arch_copy_to_user" },
 	{ 0x88db9f48, "__check_object_size" },
 	{ 0xe81e9ceb, "device_destroy" },
-	{ 0x37a0cba, "kfree" },
+	{ 0x4ef74ca4, "devm_kfree" },
 	{ 0xd7c07fe9, "cdev_del" },
 	{ 0xa38bddb0, "device_create" },
 	{ 0xcf27897c, "cdev_add" },
 	{ 0x874c72aa, "cdev_init" },
-	{ 0x78ca6491, "kmem_cache_alloc_trace" },
-	{ 0x39f0fb22, "kmalloc_caches" },
+	{ 0xe1ded73e, "devm_kmalloc" },
 	{ 0x56470118, "__warn_printk" },
 	{ 0xb38ad4b, "cpu_hwcap_keys" },
 	{ 0x712f55fe, "cpu_hwcaps" },
@@ -53,4 +52,4 @@ __used __section(__versions) = {
 MODULE_INFO(depends, "");
 
 
-MODULE_INFO(srcversion, "A9492715ED99B1ECE062A4E");
+MODULE_INFO(srcversion, "BC0B86BC2A7640CD4697EC5");
