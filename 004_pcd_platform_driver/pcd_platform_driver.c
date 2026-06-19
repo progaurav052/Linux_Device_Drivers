@@ -28,6 +28,30 @@ struct pcdrv_private_data{
 };
 
 
+enum pcdev_names
+{
+	PCDEVA1X,
+	PCDEVB1X,
+	PCDEVC1X,
+	PCDEVD1X
+};
+
+struct device_config 
+{
+	int config_item1;
+	int config_item2;
+};
+
+
+/*configuration data of the driver for devices */
+struct device_config pcdev_config[] = 
+{
+	[PCDEVA1X] = {.config_item1 = 60, .config_item2 = 21},
+	[PCDEVB1X] = {.config_item1 = 50, .config_item2 = 22},
+	[PCDEVC1X] = {.config_item1 = 40, .config_item2 = 23},
+	[PCDEVD1X] = {.config_item1 = 30, .config_item2 = 24}
+	
+};
 
 struct pcdrv_private_data pcdrv_data;
 
@@ -250,6 +274,7 @@ int pcd_platform_driver_probe(struct platform_device *pdev){
 	}
 
         pdev->dev.driver_data = dev_data; /* for future use, we can set the device private data using pdev->dev.driver_data*/
+
 	dev_data->pdata.size = pdata->size;
 	dev_data->pdata.perm = pdata->perm;
 	dev_data->pdata.serial_number = pdata->serial_number;
@@ -257,6 +282,10 @@ int pcd_platform_driver_probe(struct platform_device *pdev){
         pr_info("Device serial number = %s\n",dev_data->pdata.serial_number);
 	pr_info("Device size = %d\n", dev_data->pdata.size);
 	pr_info("Device permission = %d\n",dev_data->pdata.perm);
+
+        pr_info("Config item 1 = %d\n",pcdev_config[pdev->id_entry->driver_data].config_item1 );
+	pr_info("Config item 2 = %d\n",pcdev_config[pdev->id_entry->driver_data].config_item2 );
+
 
 	/*3. Dynamically allocate memory to device buffer using size info from platform data which is stored in dev_data in previous step*/
 	dev_data->buffer = devm_kmalloc(&pdev->dev,sizeof(dev_data->pdata.size),GFP_KERNEL);
@@ -321,19 +350,28 @@ int pcd_platform_driver_remove(struct platform_device *pdev){
         /*3. Free the memory held by the Device (like dev_data and dev_data->buffer that we created in probe) 
         kfree(dev_data->buffer);
         kfree(dev_data);*/
-
+        
         pcdrv_data.total_devices--;
 
 	pr_info("A Device is removed\n");
         return 0;
 }
 
+struct platform_device_id pcd_platform_ids[] = {
+        {.name = "pcdev-A1x", .driver_data = 0},
+        {.name = "pcdev-B1x", .driver_data = 0},
+        {.name = "pcdev-C1x", .driver_data = 0},
+        {.name = "pcdev-D1x", .driver_data = 0},
+        { /*sentinel*/ } /* should be last entry, to indicate end of the array , NULL entry is used to indicate end of the array*/
+};
+
 /* Created for platform driver registration and unregistration*/
 struct platform_driver pcd_platform_driver ={
  
 	.probe = pcd_platform_driver_probe,
 	.remove = pcd_platform_driver_remove,
-	.driver = {
+        .id_table = pcd_platform_ids, /*when we use this field , name feild will not be used for matching */
+	.driver = { /*struct device_driver driver;*/ 
 	    .name = "pseudo-char-device"
 	}
 };
@@ -369,7 +407,10 @@ static int __init pcd_platform_driver_init(void)
 static void __exit pcd_platform_driver_cleanup(void)
 {
 
-	platform_driver_unregister(&pcd_platform_driver);
+	platform_driver_unregister(&pcd_platform_driver); 
+        /*here we can delete the class, because at this point the remove function will be executed for all the Matching Devices (device files , cdev will be destroyed ) */
+        class_destroy(pcdrv_data.class_pcd);
+        unregister_chrdev_region(pcdrv_data.device_num_base,MAX_DEVICES);       
 	pr_info("platform driver unloaded\n");
 
 }

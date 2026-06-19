@@ -23,9 +23,9 @@ struct pcdev_platform_data pcdev_pdata[]={
 struct platform_device platform_pcdev_1 = {
 	.name = "pcdev-A1x",
 	.id = 0,
-	.dev = {
+	.dev = { /*struct device dev*/
 		.platform_data = &pcdev_pdata[0], /*this feild is actually an pointer to void*/
-		.release = pcdev_release
+		.release = pcdev_release /*this is a mandatory field, we have to provide a release function for the device*/
 	}
 };
 
