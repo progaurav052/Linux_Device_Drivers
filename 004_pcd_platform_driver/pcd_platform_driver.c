@@ -18,6 +18,7 @@ struct pcdev_private_data{
 	dev_t dev_num;
 	struct cdev pcd_dev;
 };
+/*we wull dynmically create this structure every time probe runs (match happens), this will also denote each device , pcd_dev will be added to VFS */
 
 
 struct pcdrv_private_data{
@@ -26,6 +27,7 @@ struct pcdrv_private_data{
 	struct class *class_pcd;
 	struct device *device_pcd;
 };
+/*to keep track fo devices and pointers needed during class and device create , also tracks base device number*/
 
 
 enum pcdev_names
@@ -262,7 +264,7 @@ int pcd_platform_driver_probe(struct platform_device *pdev){
 	{
 		pr_info("No platform data available\n");
 		ret = -EINVAL;
-		goto out;
+		return ret;
 	}	
 
 	/*2. if we have the platform data , use that to allocate memory dynamically to device private data*/
@@ -270,7 +272,8 @@ int pcd_platform_driver_probe(struct platform_device *pdev){
 	if(!dev_data){
 	  pr_info("Cannot allocate memory \n");
 	  ret = -ENOMEM;
-	  goto out;
+          return ret;
+	  
 	}
 
         pdev->dev.driver_data = dev_data; /* for future use, we can set the device private data using pdev->dev.driver_data*/
@@ -293,7 +296,7 @@ int pcd_platform_driver_probe(struct platform_device *pdev){
 	{
 	  pr_info("Cannot allocate memory to the Device buffer\n");
 	  ret = -ENOMEM;
-	  goto dev_data_del;
+	  return ret;
 	}
 
 	/*4. Get the device number, we know the Base Device Number add this to Dev id for each platform Device  */
@@ -307,7 +310,7 @@ int pcd_platform_driver_probe(struct platform_device *pdev){
 	if(ret < 0)
 	{
 		pr_err("Cdev add failed\n");
-		goto buffer_free;
+		return ret;
 	}
 
 	/*6. Create device file for the Detected Platform device */
@@ -316,7 +319,8 @@ int pcd_platform_driver_probe(struct platform_device *pdev){
 	{
 	 pr_err("Device create failed\n");
 	 ret = PTR_ERR(pcdrv_data.device_pcd);
-	 goto cdev_del;
+	 cdev_del(&dev_data->pcd_dev); /*removes the cdev from VFS*/
+         return ret;
 	 
 	}
 
@@ -324,17 +328,7 @@ int pcd_platform_driver_probe(struct platform_device *pdev){
 	
 	return 0;
 
-cdev_del:
-	cdev_del(&dev_data->pcd_dev);
 
-buffer_free:
-	devm_kfree(&pdev->dev,dev_data->buffer);
-dev_data_del:
-	devm_kfree(&pdev->dev,dev_data);
-
-out: 
-	pr_info("Device probe failed\n");
-	return ret;
 }
 
 
@@ -358,10 +352,10 @@ int pcd_platform_driver_remove(struct platform_device *pdev){
 }
 
 struct platform_device_id pcd_platform_ids[] = {
-        {.name = "pcdev-A1x", .driver_data = 0},
-        {.name = "pcdev-B1x", .driver_data = 0},
-        {.name = "pcdev-C1x", .driver_data = 0},
-        {.name = "pcdev-D1x", .driver_data = 0},
+        {.name = "pcdev-A1x", .driver_data = PCDEVA1X},
+        {.name = "pcdev-B1x", .driver_data = PCDEVB1X},
+        {.name = "pcdev-C1x", .driver_data = PCDEVC1X,},
+        {.name = "pcdev-D1x", .driver_data = PCDEVD1X},
         { /*sentinel*/ } /* should be last entry, to indicate end of the array , NULL entry is used to indicate end of the array*/
 };
 
@@ -370,7 +364,7 @@ struct platform_driver pcd_platform_driver ={
  
 	.probe = pcd_platform_driver_probe,
 	.remove = pcd_platform_driver_remove,
-        .id_table = pcd_platform_ids, /*when we use this field , name feild will not be used for matching */
+        .id_table = pcd_platform_ids, /*when we use this field , "name" of "driver" struct   will not be used for matching */
 	.driver = { /*struct device_driver driver;*/ 
 	    .name = "pseudo-char-device"
 	}

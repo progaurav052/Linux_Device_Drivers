@@ -59,7 +59,7 @@ struct platform_device platform_pcdev_4 = {
 	}
 };
 
-
+// an array of pointers to platform devices, which will be used to register the devices with the kernel platform core 
 struct platform_device *platform_pcdevs[] = 
 {
 	&platform_pcdev_1,
