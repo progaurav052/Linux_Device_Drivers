@@ -1,0 +1,1 @@
+cmd_/home/ggpai/workspace/ldd/custom_drivers/005_platform_driver_dt/pcd_platform_driver_dt.mod := { echo  /home/ggpai/workspace/ldd/custom_drivers/005_platform_driver_dt/pcd_platform_driver_dt.o;  echo; } > /home/ggpai/workspace/ldd/custom_drivers/005_platform_driver_dt/pcd_platform_driver_dt.mod

@@ -7,6 +7,8 @@
 #include<linux/platform_device.h>
 #include<linux/slab.h>
 #include<linux/mod_devicetable.h>
+#include<linux/of.h>
+#include<linux/of_device.h>
 #include "platform.h"
 
 
@@ -246,26 +248,100 @@ struct file_operations pcd_fops={
         .owner = THIS_MODULE
 };
 
+struct pcdev_platform_data* pcdev_get_platform_data_from_dt(struct device *dev)
+{
+        /* this will extract platform data from dt node , popultae an platform data struct than pass the pointer to it to calling function*/
+
+        // if matching has happened due to DT than associated / matched DT nod would be reprseneted in struct device_node *node field of struct device dev of struct platform_device
+        struct device_node *dev_node = dev->of_node;
+        struct pcdev_platform_data *pdata;
+        if(!dev_node)
+        {
+                /*meaning probe didnt happen due to DT node match */
+                return NULL;
+
+        }
+        // happenened due to mathcing of DT node 
+        // we have to extract the platform data from dt node
+        pdata = devm_kzalloc(dev,sizeof(*pdata),GFP_KERNEL);
+	if(!pdata){
+		dev_info(dev,"Cannot allocate memory \n");
+		return ERR_PTR(-ENOMEM);
+	}
+
+        /*if the of_property return negative value than some problem is there */
+	if(of_property_read_string(dev_node,"org,device-serial-num",&pdata->serial_number) ){
+        
+		dev_info(dev,"Missing serial number property\n");
+		return ERR_PTR(-EINVAL);
+
+	}
+	if( of_property_read_u32(dev_node,"org,size",&pdata->size) ){
+		dev_info(dev,"Missing size property\n");
+		return ERR_PTR(-EINVAL);
+	}
+
+	if( of_property_read_u32(dev_node,"org,perm",&pdata->perm) ){
+		dev_info(dev,"Missing permission property\n");
+		return ERR_PTR(-EINVAL);
+	}
+	return pdata;
+
+}
+
 /*gets called when matching happens between platform device and driver*/
 int pcd_platform_driver_probe(struct platform_device *pdev){
 
+        /* this probe must support both the types , using platform device struct and using DT */
 	int ret;
+        unsigned long  driver_data;
+
+        
 
         /*Pointer to device private data structure which is created everytime probe is called for every platform Device*/
 	struct pcdev_private_data *dev_data;
 
         /*Pointer to platform Data , coming from platform.h*/
 	struct pcdev_platform_data *pdata;
-
+        
+        const struct of_device_id *match;
+       
         pr_info("A Device is detected\n");
-	/*1. Get the Platform data */
-	pdata = pdev->dev.platform_data;
-	if(!pdata)
-	{
-		pr_info("No platform data available\n");
-		ret = -EINVAL;
-		return ret;
-	}	
+
+        // we have to extract the platform data , it may come either using platform_device struct or using dt 
+       pdata = pcdev_get_platform_data_from_dt(&pdev->dev);
+       // we will try to extract using DT first 
+
+       if(IS_ERR(pdata))
+       {
+                ret = PTR_ERR(pdata);
+                pr_info("could not get platform data from Device Tree Node");
+                return ret;
+       }
+
+       if(pdata ==NULL)
+       {
+                /*1. Get the Platform data , from platform_device_setup code which popultaed the plarform_data feild of struct device */
+                pdata = pdev->dev.platform_data;
+                if(!pdata)
+                {
+                        pr_info("No platform data available\n");
+                        ret = -EINVAL;
+                        return ret;
+                }
+                // in the platform_device setup case driver_data is taken from *id_entry field set during match in the plaform device struct 
+                driver_data = pdev->id_entry->driver_data;
+
+       }
+       else
+       {
+        /* extracted the platform_data from device tree Node */
+        match = of_match_device(pdev->dev.driver->of_match_table,&pdev->dev);
+        driver_data= (unsigned long)match->data;
+
+
+       }
+		
 
 	/*2. if we have the platform data , use that to allocate memory dynamically to device private data*/
 	dev_data=devm_kmalloc(&pdev->dev,sizeof(*dev_data),GFP_KERNEL);
@@ -286,8 +362,8 @@ int pcd_platform_driver_probe(struct platform_device *pdev){
 	pr_info("Device size = %d\n", dev_data->pdata.size);
 	pr_info("Device permission = %d\n",dev_data->pdata.perm);
 
-        pr_info("Config item 1 = %d\n",pcdev_config[pdev->id_entry->driver_data].config_item1 );
-	pr_info("Config item 2 = %d\n",pcdev_config[pdev->id_entry->driver_data].config_item2 );
+        pr_info("Config item 1 = %d\n",pcdev_config[driver_data].config_item1 );
+	pr_info("Config item 2 = %d\n",pcdev_config[driver_data].config_item2 );
 
 
 	/*3. Dynamically allocate memory to device buffer using size info from platform data which is stored in dev_data in previous step*/
@@ -300,7 +376,7 @@ int pcd_platform_driver_probe(struct platform_device *pdev){
 	}
 
 	/*4. Get the device number, we know the Base Device Number add this to Dev id for each platform Device  */
-	dev_data->dev_num = pcdrv_data.device_num_base + pdev->id;
+	dev_data->dev_num = pcdrv_data.device_num_base + pcdrv_data.total_devices;
 
 	/*5 Do Cdev init and cdev add */
 	cdev_init(&dev_data->pcd_dev,&pcd_fops);
@@ -314,7 +390,7 @@ int pcd_platform_driver_probe(struct platform_device *pdev){
 	}
 
 	/*6. Create device file for the Detected Platform device */
-	pcdrv_data.device_pcd = device_create(pcdrv_data.class_pcd,NULL,dev_data->dev_num,NULL,"pcdev-%d",pdev->id);
+	pcdrv_data.device_pcd = device_create(pcdrv_data.class_pcd,NULL,dev_data->dev_num,NULL,"pcdev-%d",pcdrv_data.total_devices);
 	if(IS_ERR(pcdrv_data.device_pcd))
 	{
 	 pr_err("Device create failed\n");
@@ -325,8 +401,9 @@ int pcd_platform_driver_probe(struct platform_device *pdev){
 	}
 
         pcdrv_data.total_devices++;
+
         pr_info("Probe was successful\n");
-	
+
 	return 0;
 
 
@@ -335,6 +412,8 @@ int pcd_platform_driver_probe(struct platform_device *pdev){
 
 /*gets called when device is removed from the system */
 int pcd_platform_driver_remove(struct platform_device *pdev){
+
+#if 0
         struct pcdev_private_data *dev_data = pdev->dev.driver_data;
         /*Called when for matching paltform device and driver link is removed --> happens when device is removed or driver is removed*/
         /*1. Remove the Device that was created with device create()*/
@@ -347,6 +426,7 @@ int pcd_platform_driver_remove(struct platform_device *pdev){
         kfree(dev_data);*/
         
         pcdrv_data.total_devices--;
+#endif 
 
 	pr_info("A Device is removed\n");
         return 0;
@@ -360,6 +440,17 @@ struct platform_device_id pcd_platform_ids[] = {
         { /*sentinel*/ } /* should be last entry, to indicate end of the array , NULL entry is used to indicate end of the array*/
 };
 
+/* Driver based matching parameter */
+struct of_device_id pcdev_dt_match[]={
+
+        {.compatible = "pcdev-A1x", .data = (void*)PCDEVA1X},
+        {.compatible = "pcdev-B1x", .data = (void*)PCDEVB1X},
+        {.compatible = "pcdev-C1x", .data = (void*)PCDEVC1X,},
+        {.compatible = "pcdev-D1x", .data = (void*)PCDEVD1X},
+        { /*sentinel*/ } /* should be last entry, to indicate end of the array , NULL entry is used to indicate end of the array*/
+
+};
+
 /* Created for platform driver registration and unregistration*/
 struct platform_driver pcd_platform_driver ={
  
@@ -367,7 +458,8 @@ struct platform_driver pcd_platform_driver ={
 	.remove = pcd_platform_driver_remove,
         .id_table = pcd_platform_ids, /*when we use this field , "name" of "driver" struct   will not be used for matching */
 	.driver = { /*struct device_driver driver;*/ 
-	    .name = "pseudo-char-device"
+	    .name = "pseudo-char-device",
+            .of_match_table = pcdev_dt_match
 	}
 };
 

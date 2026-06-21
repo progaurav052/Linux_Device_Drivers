@@ -26,6 +26,7 @@ struct platform_device platform_pcdev_1 = {
 	.dev = { /*struct device dev*/
 		.platform_data = &pcdev_pdata[0], /*this feild is actually an pointer to void*/
 		.release = pcdev_release /*this is a mandatory field, we have to provide a release function for the device*/
+		/*Has an feild named .driver_data  */
 	}
 };
 
